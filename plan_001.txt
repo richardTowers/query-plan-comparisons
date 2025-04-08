@@ -2,10 +2,9 @@ EXPLAIN (ANALYZE) SELECT "links"."link_type", "links"."target_content_id",
         EXISTS(
           SELECT nested_links.id
           FROM links AS nested_links
-          INNER JOIN link_sets AS nested_link_sets
-          ON nested_link_sets.id = nested_links.link_set_id
-          WHERE 
-          nested_link_sets.content_id = links.target_content_id
+          WHERE link_set_content_id IS NOT NULL
+          AND 
+          nested_links.link_set_content_id = links.target_content_id
           
           AND ((links.link_type = 'associated_taxons' AND nested_links.link_type IN ('associated_taxons')) OR (links.link_type = 'parent' AND nested_links.link_type IN ('parent')) OR (links.link_type = 'parent_taxons' AND nested_links.link_type IN ('parent_taxons', 'root_taxon')) OR (links.link_type = 'taxons' AND nested_links.link_type IN ('root_taxon', 'parent_taxons')) OR (links.link_type = 'ordered_related_items' AND nested_links.link_type IN ('mainstream_browse_pages')) OR (links.link_type = 'ordered_related_items_overrides' AND nested_links.link_type IN ('taxons')) OR (links.link_type = 'ordered_ministerial_departments' AND nested_links.link_type IN ('ordered_ministers', 'ordered_roles')) OR (links.link_type = 'historical_accounts' AND nested_links.link_type IN ('person')) OR (links.link_type = 'main_office' AND nested_links.link_type IN ('contact')) OR (links.link_type = 'home_page_offices' AND nested_links.link_type IN ('contact')) OR (links.link_type = 'worldwide_organisation' AND nested_links.link_type IN ('sponsoring_organisations', 'world_locations')))
         
@@ -15,46 +14,35 @@ EXPLAIN (ANALYZE) SELECT "links"."link_type", "links"."target_content_id",
         EXISTS(
           SELECT nested_links.id
           FROM links AS nested_links
-          INNER JOIN link_sets AS nested_link_sets
-          ON nested_link_sets.id = nested_links.link_set_id
-          WHERE 
+          WHERE link_set_content_id IS NOT NULL
+          AND 
           nested_links.target_content_id = links.target_content_id
           
           AND ((links.link_type = 'ordered_also_attends_cabinet' AND nested_links.link_type IN ('person', 'role')) OR (links.link_type = 'ordered_assistant_whips' AND nested_links.link_type IN ('person', 'role')) OR (links.link_type = 'ordered_baronesses_and_lords_in_waiting_whips' AND nested_links.link_type IN ('person', 'role')) OR (links.link_type = 'ordered_board_members' AND nested_links.link_type IN ('person', 'role')) OR (links.link_type = 'ordered_cabinet_ministers' AND nested_links.link_type IN ('person', 'role')) OR (links.link_type = 'ordered_chief_professional_officers' AND nested_links.link_type IN ('person', 'role')) OR (links.link_type = 'ordered_house_lords_whips' AND nested_links.link_type IN ('person', 'role')) OR (links.link_type = 'ordered_house_of_commons_whips' AND nested_links.link_type IN ('person', 'role')) OR (links.link_type = 'ordered_junior_lords_of_the_treasury_whips' AND nested_links.link_type IN ('person', 'role')) OR (links.link_type = 'ordered_military_personnel' AND nested_links.link_type IN ('person', 'role')) OR (links.link_type = 'ordered_ministers' AND nested_links.link_type IN ('person', 'role')) OR (links.link_type = 'office_staff' AND nested_links.link_type IN ('person', 'role')) OR (links.link_type = 'primary_role_person' AND nested_links.link_type IN ('person', 'role')) OR (links.link_type = 'secondary_role_person' AND nested_links.link_type IN ('person', 'role')) OR (links.link_type = 'ordered_special_representatives' AND nested_links.link_type IN ('person', 'role')) OR (links.link_type = 'ordered_traffic_commissioners' AND nested_links.link_type IN ('person', 'role')))
         
           LIMIT 1
         )
-       FROM "links" INNER JOIN "link_sets" ON "link_sets"."content_id" = "links"."link_set_content_id" WHERE "link_sets"."content_id" = $1 AND 1=1 ORDER BY "links"."link_type" ASC, "links"."position" ASC [["content_id", "324e4708-2285-40a0-b3aa-cb13af14ec5f"]]
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      QUERY PLAN
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Incremental Sort  (cost=968.39..47406.15 rows=113 width=41) (actual time=0.677..2.193 rows=82 loops=1)
+       FROM "links" WHERE "links"."link_set_content_id" IS NOT NULL AND "links"."link_set_content_id" = $1 AND 1=1 ORDER BY "links"."link_type" ASC, "links"."position" ASC [["link_set_content_id", "324e4708-2285-40a0-b3aa-cb13af14ec5f"]]
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   QUERY PLAN
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Incremental Sort  (cost=83.42..995.22 rows=14 width=41) (actual time=0.671..2.123 rows=82 loops=1)
    Sort Key: links.link_type, links."position"
    Presorted Key: links.link_type
    Full-sort Groups: 3  Sort Method: quicksort  Average Memory: 28kB  Peak Memory: 28kB
-   ->  Nested Loop  (cost=0.99..47402.10 rows=113 width=41) (actual time=0.156..2.112 rows=82 loops=1)
-         ->  Index Scan using index_links_on_link_set_content_id_and_link_type on links  (cost=0.56..457.85 rows=113 width=55) (actual time=0.035..0.085 rows=82 loops=1)
-               Index Cond: (link_set_content_id = '324e4708-2285-40a0-b3aa-cb13af14ec5f'::uuid)
-         ->  Materialize  (cost=0.42..4.45 rows=1 width=16) (actual time=0.000..0.000 rows=1 loops=82)
-               ->  Index Only Scan using index_link_sets_on_content_id on link_sets  (cost=0.42..4.44 rows=1 width=16) (actual time=0.010..0.010 rows=1 loops=1)
-                     Index Cond: (content_id = '324e4708-2285-40a0-b3aa-cb13af14ec5f'::uuid)
-                     Heap Fetches: 0
+   ->  Index Scan using index_links_on_link_set_content_id_and_link_type on links  (cost=0.56..994.66 rows=14 width=41) (actual time=0.070..2.007 rows=82 loops=1)
+         Index Cond: ((link_set_content_id IS NOT NULL) AND (link_set_content_id = '324e4708-2285-40a0-b3aa-cb13af14ec5f'::uuid))
          SubPlan 1
-           ->  Nested Loop  (cost=0.86..397.73 rows=1 width=0) (actual time=0.019..0.019 rows=0 loops=82)
-                 ->  Index Scan using index_link_sets_on_content_id on link_sets nested_link_sets  (cost=0.42..8.44 rows=1 width=4) (actual time=0.002..0.002 rows=1 loops=82)
-                       Index Cond: (content_id = links.target_content_id)
-                 ->  Index Scan using index_links_on_link_set_id on links nested_links  (cost=0.44..389.28 rows=1 width=4) (actual time=0.008..0.008 rows=0 loops=82)
-                       Index Cond: (link_set_id = nested_link_sets.id)
-                       Filter: ((((links.link_type)::text = 'associated_taxons'::text) AND ((link_type)::text = 'associated_taxons'::text)) OR (((links.link_type)::text = 'parent'::text) AND ((link_type)::text = 'parent'::text)) OR (((links.link_type)::text = 'parent_taxons'::text) AND ((link_type)::text = ANY ('{parent_taxons,root_taxon}'::text[]))) OR (((links.link_type)::text = 'taxons'::text) AND ((link_type)::text = ANY ('{root_taxon,parent_taxons}'::text[]))) OR (((links.link_type)::text = 'ordered_related_items'::text) AND ((link_type)::text = 'mainstream_browse_pages'::text)) OR (((links.link_type)::text = 'ordered_related_items_overrides'::text) AND ((link_type)::text = 'taxons'::text)) OR (((links.link_type)::text = 'ordered_ministerial_departments'::text) AND ((link_type)::text = ANY ('{ordered_ministers,ordered_roles}'::text[]))) OR (((links.link_type)::text = 'historical_accounts'::text) AND ((link_type)::text = 'person'::text)) OR (((links.link_type)::text = 'main_office'::text) AND ((link_type)::text = 'contact'::text)) OR (((links.link_type)::text = 'home_page_offices'::text) AND ((link_type)::text = 'contact'::text)) OR (((links.link_type)::text = 'worldwide_organisation'::text) AND ((link_type)::text = ANY ('{sponsoring_organisations,world_locations}'::text[]))))
-                       Rows Removed by Filter: 7
+           ->  Index Only Scan using index_links_on_link_set_content_id_and_link_type on links nested_links  (cost=0.56..53.55 rows=1 width=0) (actual time=0.018..0.018 rows=0 loops=82)
+                 Index Cond: ((link_set_content_id IS NOT NULL) AND (link_set_content_id = links.target_content_id))
+                 Filter: ((((links.link_type)::text = 'associated_taxons'::text) AND ((link_type)::text = 'associated_taxons'::text)) OR (((links.link_type)::text = 'parent'::text) AND ((link_type)::text = 'parent'::text)) OR (((links.link_type)::text = 'parent_taxons'::text) AND ((link_type)::text = ANY ('{parent_taxons,root_taxon}'::text[]))) OR (((links.link_type)::text = 'taxons'::text) AND ((link_type)::text = ANY ('{root_taxon,parent_taxons}'::text[]))) OR (((links.link_type)::text = 'ordered_related_items'::text) AND ((link_type)::text = 'mainstream_browse_pages'::text)) OR (((links.link_type)::text = 'ordered_related_items_overrides'::text) AND ((link_type)::text = 'taxons'::text)) OR (((links.link_type)::text = 'ordered_ministerial_departments'::text) AND ((link_type)::text = ANY ('{ordered_ministers,ordered_roles}'::text[]))) OR (((links.link_type)::text = 'historical_accounts'::text) AND ((link_type)::text = 'person'::text)) OR (((links.link_type)::text = 'main_office'::text) AND ((link_type)::text = 'contact'::text)) OR (((links.link_type)::text = 'home_page_offices'::text) AND ((link_type)::text = 'contact'::text)) OR (((links.link_type)::text = 'worldwide_organisation'::text) AND ((link_type)::text = ANY ('{sponsoring_organisations,world_locations}'::text[]))))
+                 Rows Removed by Filter: 14
+                 Heap Fetches: 1213
          SubPlan 2
-           ->  Result  (cost=1.03..17.65 rows=1 width=0) (actual time=0.005..0.005 rows=1 loops=82)
+           ->  Result  (cost=0.56..13.16 rows=1 width=0) (actual time=0.005..0.005 rows=1 loops=82)
                  One-Time Filter: (((links.link_type)::text = 'ordered_also_attends_cabinet'::text) OR ((links.link_type)::text = 'ordered_assistant_whips'::text) OR ((links.link_type)::text = 'ordered_baronesses_and_lords_in_waiting_whips'::text) OR ((links.link_type)::text = 'ordered_board_members'::text) OR ((links.link_type)::text = 'ordered_cabinet_ministers'::text) OR ((links.link_type)::text = 'ordered_chief_professional_officers'::text) OR ((links.link_type)::text = 'ordered_house_lords_whips'::text) OR ((links.link_type)::text = 'ordered_house_of_commons_whips'::text) OR ((links.link_type)::text = 'ordered_junior_lords_of_the_treasury_whips'::text) OR ((links.link_type)::text = 'ordered_military_personnel'::text) OR ((links.link_type)::text = 'ordered_ministers'::text) OR ((links.link_type)::text = 'office_staff'::text) OR ((links.link_type)::text = 'primary_role_person'::text) OR ((links.link_type)::text = 'secondary_role_person'::text) OR ((links.link_type)::text = 'ordered_special_representatives'::text) OR ((links.link_type)::text = 'ordered_traffic_commissioners'::text))
-                 ->  Nested Loop  (cost=1.03..17.65 rows=1 width=0) (actual time=0.007..0.007 rows=1 loops=53)
-                       ->  Index Scan using index_links_on_target_content_id_and_link_type on links nested_links_1  (cost=0.56..13.16 rows=1 width=4) (actual time=0.005..0.005 rows=1 loops=53)
-                             Index Cond: ((target_content_id = links.target_content_id) AND ((link_type)::text = ANY ('{person,role}'::text[])))
-                       ->  Index Only Scan using link_sets_pkey on link_sets nested_link_sets_1  (cost=0.42..4.44 rows=1 width=4) (actual time=0.001..0.001 rows=1 loops=53)
-                             Index Cond: (id = nested_links_1.link_set_id)
-                             Heap Fetches: 0
- Planning Time: 0.823 ms
- Execution Time: 2.264 ms
-(30 rows)
+                 ->  Index Scan using index_links_on_target_content_id_and_link_type on links nested_links_1  (cost=0.56..13.16 rows=1 width=0) (actual time=0.006..0.006 rows=1 loops=53)
+                       Index Cond: ((target_content_id = links.target_content_id) AND ((link_type)::text = ANY ('{person,role}'::text[])))
+                       Filter: (link_set_content_id IS NOT NULL)
+ Planning Time: 1.087 ms
+ Execution Time: 2.237 ms
+(20 rows)
