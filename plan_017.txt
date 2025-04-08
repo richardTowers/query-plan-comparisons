@@ -1,16 +1,12 @@
-EXPLAIN (ANALYZE) SELECT "links"."link_type", "links"."target_content_id" FROM "links" INNER JOIN "link_sets" ON "link_sets"."content_id" = "links"."link_set_content_id" WHERE "link_sets"."content_id" = $1 AND "links"."link_type" = $2 AND "links"."target_content_id" != $3 ORDER BY "links"."link_type" ASC, "links"."position" ASC [["content_id", "b54e56ab-142d-4273-8c9d-65e0c42f0b9f"], ["link_type", "role"], ["target_content_id", "e830e2eb-5ebc-4142-bd32-c3ef6cae18c4"]]
-                                                                             QUERY PLAN
----------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=13.05..13.05 rows=1 width=39) (actual time=0.018..0.019 rows=1 loops=1)
-   Sort Key: links."position"
+EXPLAIN (ANALYZE) SELECT "links"."link_type", "links"."target_content_id" FROM "links" WHERE "links"."link_set_content_id" IS NOT NULL AND "links"."link_set_content_id" = $1 AND "links"."link_type" = $2 AND "links"."target_content_id" != $3 ORDER BY "links"."link_type" ASC, "links"."position" ASC [["link_set_content_id", "b54e56ab-142d-4273-8c9d-65e0c42f0b9f"], ["link_type", "role"], ["target_content_id", "e830e2eb-5ebc-4142-bd32-c3ef6cae18c4"]]
+                                                                               QUERY PLAN
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=8.60..8.61 rows=1 width=39) (actual time=0.010..0.011 rows=1 loops=1)
+   Sort Key: "position"
    Sort Method: quicksort  Memory: 25kB
-   ->  Nested Loop  (cost=0.99..13.04 rows=1 width=39) (actual time=0.015..0.016 rows=1 loops=1)
-         ->  Index Scan using index_links_on_link_set_content_id_and_link_type on links  (cost=0.56..8.59 rows=1 width=55) (actual time=0.009..0.009 rows=1 loops=1)
-               Index Cond: ((link_set_content_id = 'b54e56ab-142d-4273-8c9d-65e0c42f0b9f'::uuid) AND ((link_type)::text = 'role'::text))
-               Filter: (target_content_id <> 'e830e2eb-5ebc-4142-bd32-c3ef6cae18c4'::uuid)
-         ->  Index Only Scan using index_link_sets_on_content_id on link_sets  (cost=0.42..4.44 rows=1 width=16) (actual time=0.005..0.005 rows=1 loops=1)
-               Index Cond: (content_id = 'b54e56ab-142d-4273-8c9d-65e0c42f0b9f'::uuid)
-               Heap Fetches: 0
- Planning Time: 0.118 ms
- Execution Time: 0.033 ms
-(12 rows)
+   ->  Index Scan using index_links_on_link_set_content_id_and_link_type on links  (cost=0.56..8.59 rows=1 width=39) (actual time=0.008..0.008 rows=1 loops=1)
+         Index Cond: ((link_set_content_id IS NOT NULL) AND (link_set_content_id = 'b54e56ab-142d-4273-8c9d-65e0c42f0b9f'::uuid) AND ((link_type)::text = 'role'::text))
+         Filter: (target_content_id <> 'e830e2eb-5ebc-4142-bd32-c3ef6cae18c4'::uuid)
+ Planning Time: 0.086 ms
+ Execution Time: 0.019 ms
+(8 rows)
