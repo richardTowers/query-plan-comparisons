@@ -1,44 +1,30 @@
-EXPLAIN (ANALYZE) SELECT "links"."link_type", "link_sets"."content_id", 
+EXPLAIN (ANALYZE) SELECT "links"."link_type", "links"."link_set_content_id", 
         EXISTS(
           SELECT nested_links.id
           FROM links AS nested_links
-          INNER JOIN link_sets AS nested_link_sets
-          ON nested_link_sets.id = nested_links.link_set_id
-          WHERE 
-          nested_link_sets.content_id = link_sets.content_id
+          WHERE link_set_content_id IS NOT NULL
+          AND 
+          nested_links.link_set_content_id = links.link_set_content_id
           AND nested_links.target_content_id NOT IN ('b548a09f-8b35-4104-89f4-f1a40bf3136d')
           AND ((links.link_type = 'person' AND nested_links.link_type IN ('role')) OR (links.link_type = 'role' AND nested_links.link_type IN ('role')))
         
           LIMIT 1
         )
-       FROM "links" INNER JOIN "link_sets" ON "link_sets"."content_id" = "links"."link_set_content_id" WHERE "links"."target_content_id" = $1 AND "links"."link_type" IN ($2, $3) AND "link_sets"."content_id" != $4 ORDER BY "links"."link_type" ASC, "links"."position" ASC [["target_content_id", "5b4427ff-d318-49cc-b2f5-bb7ebd6d91b6"], ["link_type", "person"], ["link_type", "role"], ["content_id", "b548a09f-8b35-4104-89f4-f1a40bf3136d"]]
-                                                                                     QUERY PLAN
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=113.90..113.91 rows=1 width=40) (actual time=3.617..3.619 rows=3 loops=1)
+       FROM "links" WHERE "links"."link_set_content_id" IS NOT NULL AND "links"."target_content_id" = $1 AND "links"."link_type" IN ($2, $3) AND "links"."link_set_content_id" != $4 ORDER BY "links"."link_type" ASC, "links"."position" ASC [["target_content_id", "5b4427ff-d318-49cc-b2f5-bb7ebd6d91b6"], ["link_type", "person"], ["link_type", "role"], ["link_set_content_id", "b548a09f-8b35-4104-89f4-f1a40bf3136d"]]
+                                                                                       QUERY PLAN
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=21.76..21.77 rows=1 width=40) (actual time=0.055..0.056 rows=3 loops=1)
    Sort Key: links.link_type, links."position"
    Sort Method: quicksort  Memory: 25kB
-   ->  Nested Loop  (cost=0.99..113.89 rows=1 width=40) (actual time=1.195..3.610 rows=3 loops=1)
-         ->  Index Scan using index_links_on_target_content_id_and_link_type on links  (cost=0.56..13.16 rows=1 width=39) (actual time=0.008..0.019 rows=3 loops=1)
-               Index Cond: ((target_content_id = '5b4427ff-d318-49cc-b2f5-bb7ebd6d91b6'::uuid) AND ((link_type)::text = ANY ('{person,role}'::text[])))
-         ->  Index Only Scan using index_link_sets_on_content_id on link_sets  (cost=0.42..4.45 rows=1 width=16) (actual time=0.004..0.004 rows=1 loops=3)
-               Index Cond: (content_id = links.link_set_content_id)
-               Filter: (content_id <> 'b548a09f-8b35-4104-89f4-f1a40bf3136d'::uuid)
-               Heap Fetches: 0
+   ->  Index Scan using index_links_on_target_content_id_and_link_type on links  (cost=0.56..21.75 rows=1 width=40) (actual time=0.026..0.048 rows=3 loops=1)
+         Index Cond: ((target_content_id = '5b4427ff-d318-49cc-b2f5-bb7ebd6d91b6'::uuid) AND ((link_type)::text = ANY ('{person,role}'::text[])))
+         Filter: ((link_set_content_id IS NOT NULL) AND (link_set_content_id <> 'b548a09f-8b35-4104-89f4-f1a40bf3136d'::uuid))
          SubPlan 1
-           ->  Result  (cost=84.24..96.29 rows=1 width=0) (actual time=1.191..1.191 rows=1 loops=3)
+           ->  Result  (cost=0.56..8.59 rows=1 width=0) (actual time=0.007..0.007 rows=1 loops=3)
                  One-Time Filter: (((links.link_type)::text = 'person'::text) OR ((links.link_type)::text = 'role'::text))
-                 ->  Nested Loop  (cost=84.24..96.29 rows=1 width=0) (actual time=1.190..1.190 rows=1 loops=3)
-                       ->  Index Scan using index_link_sets_on_content_id on link_sets nested_link_sets  (cost=0.42..8.44 rows=1 width=4) (actual time=0.002..0.002 rows=1 loops=3)
-                             Index Cond: (content_id = link_sets.content_id)
-                       ->  Bitmap Heap Scan on links nested_links  (cost=83.81..87.83 rows=1 width=4) (actual time=1.183..1.183 rows=1 loops=3)
-                             Recheck Cond: ((link_set_id = nested_link_sets.id) AND ((link_type)::text = 'role'::text))
-                             Filter: (target_content_id <> 'b548a09f-8b35-4104-89f4-f1a40bf3136d'::uuid)
-                             Heap Blocks: exact=5
-                             ->  BitmapAnd  (cost=83.81..83.81 rows=1 width=0) (actual time=1.180..1.180 rows=0 loops=3)
-                                   ->  Bitmap Index Scan on index_links_on_link_set_id  (cost=0.00..5.29 rows=113 width=0) (actual time=0.004..0.004 rows=4 loops=3)
-                                         Index Cond: (link_set_id = nested_link_sets.id)
-                                   ->  Bitmap Index Scan on index_links_on_link_type  (cost=0.00..76.69 rows=6417 width=0) (actual time=1.172..1.172 rows=25584 loops=3)
-                                         Index Cond: ((link_type)::text = 'role'::text)
- Planning Time: 0.384 ms
- Execution Time: 3.650 ms
-(27 rows)
+                 ->  Index Scan using index_links_on_link_set_content_id_and_link_type on links nested_links  (cost=0.56..8.59 rows=1 width=0) (actual time=0.006..0.006 rows=1 loops=3)
+                       Index Cond: ((link_set_content_id IS NOT NULL) AND (link_set_content_id = links.link_set_content_id) AND ((link_type)::text = 'role'::text))
+                       Filter: (target_content_id <> 'b548a09f-8b35-4104-89f4-f1a40bf3136d'::uuid)
+ Planning Time: 0.193 ms
+ Execution Time: 0.084 ms
+(14 rows)
