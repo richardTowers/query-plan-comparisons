@@ -1,0 +1,16 @@
+EXPLAIN (ANALYZE) SELECT "links"."link_type", "links"."target_content_id" FROM "links" INNER JOIN "link_sets" ON "link_sets"."content_id" = "links"."link_set_content_id" WHERE "link_sets"."content_id" = $1 AND "links"."link_type" = $2 AND "links"."target_content_id" != $3 ORDER BY "links"."link_type" ASC, "links"."position" ASC [["content_id", "3b744a72-95ad-4f91-a026-bbac7dd64c09"], ["link_type", "role"], ["target_content_id", "d2025439-9d59-49af-8534-0ba4cf54517a"]]
+                                                                             QUERY PLAN
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=13.05..13.05 rows=1 width=39) (actual time=0.016..0.017 rows=1 loops=1)
+   Sort Key: links."position"
+   Sort Method: quicksort  Memory: 25kB
+   ->  Nested Loop  (cost=0.99..13.04 rows=1 width=39) (actual time=0.013..0.014 rows=1 loops=1)
+         ->  Index Scan using index_links_on_link_set_content_id_and_link_type on links  (cost=0.56..8.59 rows=1 width=55) (actual time=0.008..0.008 rows=1 loops=1)
+               Index Cond: ((link_set_content_id = '3b744a72-95ad-4f91-a026-bbac7dd64c09'::uuid) AND ((link_type)::text = 'role'::text))
+               Filter: (target_content_id <> 'd2025439-9d59-49af-8534-0ba4cf54517a'::uuid)
+         ->  Index Only Scan using index_link_sets_on_content_id on link_sets  (cost=0.42..4.44 rows=1 width=16) (actual time=0.004..0.004 rows=1 loops=1)
+               Index Cond: (content_id = '3b744a72-95ad-4f91-a026-bbac7dd64c09'::uuid)
+               Heap Fetches: 0
+ Planning Time: 0.113 ms
+ Execution Time: 0.030 ms
+(12 rows)
