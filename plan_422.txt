@@ -2,36 +2,28 @@ EXPLAIN (ANALYZE) SELECT "links"."link_type", "links"."target_content_id",
         EXISTS(
           SELECT nested_links.id
           FROM links AS nested_links
-          INNER JOIN link_sets AS nested_link_sets
-          ON nested_link_sets.id = nested_links.link_set_id
-          WHERE 
+          WHERE link_set_content_id IS NOT NULL
+          AND 
           nested_links.target_content_id = links.target_content_id
           
           AND ((links.link_type = 'ordered_ministers' AND nested_links.link_type IN ('person', 'role')))
         
           LIMIT 1
         )
-       FROM "links" INNER JOIN "link_sets" ON "link_sets"."content_id" = "links"."link_set_content_id" WHERE "link_sets"."content_id" = $1 AND "links"."link_type" IN ($2, $3) AND 1=1 ORDER BY "links"."link_type" ASC, "links"."position" ASC [["content_id", "99a5828c-79dd-4533-ab18-18069be289cf"], ["link_type", "ordered_ministers"], ["link_type", "ordered_roles"]]
-                                                                                          QUERY PLAN
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=35.24..35.24 rows=1 width=40) (actual time=0.063..0.065 rows=12 loops=1)
+       FROM "links" WHERE "links"."link_set_content_id" IS NOT NULL AND "links"."link_set_content_id" = $1 AND "links"."link_type" IN ($2, $3) AND 1=1 ORDER BY "links"."link_type" ASC, "links"."position" ASC [["link_set_content_id", "99a5828c-79dd-4533-ab18-18069be289cf"], ["link_type", "ordered_ministers"], ["link_type", "ordered_roles"]]
+                                                                                                  QUERY PLAN
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=26.34..26.34 rows=1 width=40) (actual time=0.038..0.040 rows=12 loops=1)
    Sort Key: links.link_type, links."position"
    Sort Method: quicksort  Memory: 25kB
-   ->  Nested Loop  (cost=0.99..35.23 rows=1 width=40) (actual time=0.021..0.057 rows=12 loops=1)
-         ->  Index Scan using index_links_on_link_set_content_id_and_link_type on links  (cost=0.56..13.16 rows=1 width=55) (actual time=0.007..0.013 rows=12 loops=1)
-               Index Cond: ((link_set_content_id = '99a5828c-79dd-4533-ab18-18069be289cf'::uuid) AND ((link_type)::text = ANY ('{ordered_ministers,ordered_roles}'::text[])))
-         ->  Index Only Scan using index_link_sets_on_content_id on link_sets  (cost=0.42..4.44 rows=1 width=16) (actual time=0.001..0.001 rows=1 loops=12)
-               Index Cond: (content_id = '99a5828c-79dd-4533-ab18-18069be289cf'::uuid)
-               Heap Fetches: 0
+   ->  Index Scan using index_links_on_link_set_content_id_and_link_type on links  (cost=0.56..26.33 rows=1 width=40) (actual time=0.017..0.031 rows=12 loops=1)
+         Index Cond: ((link_set_content_id IS NOT NULL) AND (link_set_content_id = '99a5828c-79dd-4533-ab18-18069be289cf'::uuid) AND ((link_type)::text = ANY ('{ordered_ministers,ordered_roles}'::text[])))
          SubPlan 1
-           ->  Result  (cost=0.99..17.62 rows=1 width=0) (actual time=0.002..0.002 rows=0 loops=12)
+           ->  Result  (cost=0.56..13.16 rows=1 width=0) (actual time=0.001..0.001 rows=0 loops=12)
                  One-Time Filter: ((links.link_type)::text = 'ordered_ministers'::text)
-                 ->  Nested Loop  (cost=0.99..17.62 rows=1 width=0) (actual time=0.008..0.009 rows=1 loops=2)
-                       ->  Index Scan using index_links_on_target_content_id_and_link_type on links nested_links  (cost=0.56..13.16 rows=1 width=4) (actual time=0.004..0.004 rows=1 loops=2)
-                             Index Cond: ((target_content_id = links.target_content_id) AND ((link_type)::text = ANY ('{person,role}'::text[])))
-                       ->  Index Only Scan using link_sets_pkey on link_sets nested_link_sets  (cost=0.42..4.44 rows=1 width=4) (actual time=0.002..0.003 rows=1 loops=2)
-                             Index Cond: (id = nested_links.link_set_id)
-                             Heap Fetches: 0
- Planning Time: 0.398 ms
- Execution Time: 0.087 ms
-(20 rows)
+                 ->  Index Scan using index_links_on_target_content_id_and_link_type on links nested_links  (cost=0.56..13.16 rows=1 width=0) (actual time=0.006..0.006 rows=1 loops=2)
+                       Index Cond: ((target_content_id = links.target_content_id) AND ((link_type)::text = ANY ('{person,role}'::text[])))
+                       Filter: (link_set_content_id IS NOT NULL)
+ Planning Time: 0.215 ms
+ Execution Time: 0.056 ms
+(13 rows)
